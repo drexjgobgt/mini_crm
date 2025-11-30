@@ -18,20 +18,33 @@ function FollowupList() {
   };
 
   const handleComplete = async (id) => {
+    if (!id || !Number.isInteger(Number(id))) {
+      alert("Invalid followup ID");
+      return;
+    }
+
     try {
       await api.completeFollowup(id);
       loadFollowups();
+      alert("Follow-up berhasil ditandai sebagai selesai");
     } catch (error) {
       console.error("Error completing followup:", error);
+      const errorMessage =
+        error.response?.data?.error ||
+        error.response?.data?.message ||
+        "Gagal menandai follow-up sebagai selesai";
+      alert(errorMessage);
     }
   };
 
-  const isOverdue = (dueDate) => {
-    return new Date(dueDate) < new Date();
+  const isOverdue = (followupDate) => {
+    return new Date(followupDate) < new Date();
   };
 
   const sortedFollowups = [...followups].sort(
-    (a, b) => new Date(a.due_date) - new Date(b.due_date)
+    (a, b) =>
+      new Date(a.followup_date || a.due_date) -
+      new Date(b.followup_date || b.due_date)
   );
 
   return (
@@ -52,7 +65,9 @@ function FollowupList() {
             <div
               key={followup.id}
               className={`bg-white rounded-lg shadow p-6 ${
-                isOverdue(followup.due_date) ? "border-l-4 border-red-500" : ""
+                isOverdue(followup.followup_date || followup.due_date)
+                  ? "border-l-4 border-red-500"
+                  : ""
               }`}
             >
               <div className="flex justify-between items-start">
@@ -61,17 +76,21 @@ function FollowupList() {
                     <h3 className="text-xl font-semibold text-gray-900">
                       {followup.customer_name}
                     </h3>
-                    {isOverdue(followup.due_date) && (
+                    {isOverdue(followup.followup_date || followup.due_date) && (
                       <span className="px-3 py-1 bg-red-100 text-red-800 text-sm font-medium rounded-full">
                         Terlambat
                       </span>
                     )}
                   </div>
                   <p className="text-gray-600 mb-2">📞 {followup.phone}</p>
-                  <p className="text-gray-700 mb-3">{followup.message}</p>
+                  <p className="text-gray-700 mb-3">
+                    {followup.notes || followup.message || ""}
+                  </p>
                   <p className="text-sm text-gray-500">
                     📅 Jatuh tempo:{" "}
-                    {new Date(followup.due_date).toLocaleDateString("id-ID", {
+                    {new Date(
+                      followup.followup_date || followup.due_date
+                    ).toLocaleDateString("id-ID", {
                       year: "numeric",
                       month: "long",
                       day: "numeric",

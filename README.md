@@ -49,18 +49,28 @@ cd backend
 npm install
 ```
 
-Buat file `.env` di folder `backend` dengan konfigurasi berikut:
+Buat file `.env` di folder `backend` dengan konfigurasi berikut (atau copy dari `.env.example`):
 
 ```env
 PORT=5000
+NODE_ENV=development
 DB_HOST=localhost
 DB_PORT=5432
 DB_NAME=nama_database_anda
 DB_USER=postgres
 DB_PASSWORD=password_database_anda
+ALLOWED_ORIGINS=http://localhost:5173,http://localhost:3000
 ```
 
 **Penting**: File `.env` tidak akan ter-commit ke Git karena sudah di-ignore. Pastikan untuk membuat file ini secara manual.
+
+### Setup Frontend Environment
+
+Buat file `.env` di folder `frontend` (atau copy dari `.env.example`):
+
+```env
+VITE_API_URL=http://localhost:5000/api
+```
 
 ### 3. Setup Database
 
@@ -100,9 +110,30 @@ CREATE TABLE followups (
     status VARCHAR(50) DEFAULT 'pending',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+-- Index untuk performa
+CREATE INDEX idx_customers_created_at ON customers(created_at);
+CREATE INDEX idx_orders_customer_id ON orders(customer_id);
+CREATE INDEX idx_orders_order_date ON orders(order_date);
+CREATE INDEX idx_followups_customer_id ON followups(customer_id);
+CREATE INDEX idx_followups_status ON followups(status);
+CREATE INDEX idx_followups_followup_date ON followups(followup_date);
 ```
 
-### 4. Setup Frontend
+### 4. Install Dependencies Backend
+
+```bash
+cd backend
+npm install
+```
+
+**Catatan**: Dependencies baru yang ditambahkan untuk security:
+- `express-rate-limit`: Rate limiting
+- `express-validator`: Input validation
+- `helmet`: Security headers
+- `xss`: XSS protection
+
+### 5. Setup Frontend
 
 ```bash
 cd ../frontend
@@ -195,10 +226,57 @@ mini CRM UMKM/
 
 ## 🔒 Keamanan
 
+Project ini telah dilengkapi dengan berbagai fitur keamanan:
+
+### Security Features yang Diimplementasikan:
+
+1. **Input Validation & Sanitization**
+   - Semua input divalidasi menggunakan `express-validator`
+   - XSS protection dengan sanitization
+   - Email dan phone number validation
+   - SQL injection prevention dengan parameterized queries
+
+2. **Rate Limiting**
+   - API rate limiting: 100 requests per 15 menit
+   - Strict rate limiting untuk create/update/delete: 20 requests per 15 menit
+   - Export rate limiting: 10 requests per jam
+
+3. **CORS Protection**
+   - CORS dikonfigurasi untuk hanya mengizinkan origin tertentu
+   - Dapat dikonfigurasi melalui environment variable `ALLOWED_ORIGINS`
+
+4. **Security Headers**
+   - Menggunakan Helmet.js untuk security headers
+   - Content Security Policy (CSP)
+   - XSS protection headers
+
+5. **Error Handling**
+   - Error messages tidak mengekspos informasi sensitif
+   - Database errors tidak langsung ditampilkan ke client
+   - Proper error logging untuk debugging
+
+6. **Request Size Limits**
+   - Body parser limit: 10MB
+   - Mencegah abuse dengan request besar
+
+7. **Database Security**
+   - Connection pooling dengan limit
+   - Connection timeout handling
+   - Environment variable validation
+
+8. **Frontend Security**
+   - Input sanitization di client-side
+   - ID validation sebelum API calls
+   - Proper error handling
+
+### Best Practices:
+
 - File `.env` tidak akan ter-commit ke repository Git
 - Pastikan untuk tidak membagikan file `.env` Anda
 - Gunakan password yang kuat untuk database PostgreSQL
 - Untuk production, pertimbangkan untuk menggunakan HTTPS
+- Update dependencies secara berkala
+- Gunakan environment variables untuk semua konfigurasi sensitif
 
 ## 📝 Catatan Penting
 

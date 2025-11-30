@@ -17,18 +17,75 @@ function CustomerForm({ customer, onClose }) {
     }
   }, [customer]);
 
+  // Sanitize input untuk prevent XSS
+  const sanitizeInput = (value) => {
+    if (typeof value !== "string") return value;
+    // Remove potentially dangerous characters
+    return value
+      .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, "")
+      .replace(/<[^>]+>/g, "")
+      .trim();
+  };
+
+  // Validate email format
+  const validateEmail = (email) => {
+    if (!email) return true; // Email is optional
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  };
+
+  // Validate phone format
+  const validatePhone = (phone) => {
+    if (!phone) return true; // Phone is optional
+    const phoneRegex = /^[0-9+\-\s()]+$/;
+    return phoneRegex.test(phone);
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    // Validate required fields
+    if (!formData.name || formData.name.trim().length < 2) {
+      alert("Nama harus diisi minimal 2 karakter");
+      return;
+    }
+
+    // Validate email
+    if (formData.email && !validateEmail(formData.email)) {
+      alert("Format email tidak valid");
+      return;
+    }
+
+    // Validate phone
+    if (formData.phone && !validatePhone(formData.phone)) {
+      alert("Format nomor telepon tidak valid");
+      return;
+    }
+
+    // Sanitize all inputs
+    const sanitizedData = {
+      name: sanitizeInput(formData.name),
+      phone: formData.phone ? sanitizeInput(formData.phone) : "",
+      email: formData.email ? sanitizeInput(formData.email).toLowerCase() : "",
+      address: formData.address ? sanitizeInput(formData.address) : "",
+      tags: Array.isArray(formData.tags) ? formData.tags : [],
+      notes: formData.notes ? sanitizeInput(formData.notes) : "",
+    };
+
     try {
       if (customer) {
-        await api.updateCustomer(customer.id, formData);
+        await api.updateCustomer(customer.id, sanitizedData);
       } else {
-        await api.createCustomer(formData);
+        await api.createCustomer(sanitizedData);
       }
       onClose();
     } catch (error) {
       console.error("Error saving customer:", error);
-      alert("Gagal menyimpan data pelanggan");
+      const errorMessage =
+        error.response?.data?.error ||
+        error.response?.data?.message ||
+        "Gagal menyimpan data pelanggan";
+      alert(errorMessage);
     }
   };
 

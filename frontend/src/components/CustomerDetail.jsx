@@ -41,8 +41,25 @@ function CustomerDetail() {
 
   const handleOrderSubmit = async (e) => {
     e.preventDefault();
+
+    // Validate order data
+    if (!orderForm.order_date) {
+      alert("Tanggal pesanan harus diisi");
+      return;
+    }
+
+    const totalAmount = parseFloat(orderForm.total_amount);
+    if (isNaN(totalAmount) || totalAmount < 0) {
+      alert("Total amount harus berupa angka positif");
+      return;
+    }
+
     try {
-      await api.createOrder({ ...orderForm, customer_id: id });
+      await api.createOrder({
+        ...orderForm,
+        customer_id: parseInt(id),
+        total_amount: totalAmount,
+      });
       setShowOrderForm(false);
       setOrderForm({
         order_date: new Date().toISOString().split("T")[0],
@@ -52,20 +69,51 @@ function CustomerDetail() {
         notes: "",
       });
       loadCustomerData();
+      alert("Pesanan berhasil ditambahkan!");
     } catch (error) {
       console.error("Error creating order:", error);
+      const errorMessage =
+        error.response?.data?.error ||
+        error.response?.data?.message ||
+        "Gagal menambahkan pesanan";
+      alert(errorMessage);
     }
   };
 
   const handleFollowupSubmit = async (e) => {
     e.preventDefault();
+
+    // Validate followup data
+    if (!followupForm.due_date) {
+      alert("Tanggal follow-up harus diisi");
+      return;
+    }
+
+    // Validate date is not in the past
+    const dueDate = new Date(followupForm.due_date);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    if (dueDate < today) {
+      alert("Tanggal follow-up tidak boleh di masa lalu");
+      return;
+    }
+
     try {
-      await api.createFollowup({ ...followupForm, customer_id: id });
+      await api.createFollowup({
+        ...followupForm,
+        customer_id: parseInt(id),
+      });
       setShowFollowupForm(false);
       setFollowupForm({ due_date: "", message: "" });
       alert("Reminder follow-up berhasil ditambahkan!");
     } catch (error) {
       console.error("Error creating followup:", error);
+      const errorMessage =
+        error.response?.data?.error ||
+        error.response?.data?.message ||
+        "Gagal menambahkan follow-up";
+      alert(errorMessage);
     }
   };
 

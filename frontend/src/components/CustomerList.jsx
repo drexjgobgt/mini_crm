@@ -24,12 +24,23 @@ function CustomerList() {
   };
 
   const handleDelete = async (id) => {
+    if (!id || !Number.isInteger(Number(id))) {
+      alert("Invalid customer ID");
+      return;
+    }
+
     if (window.confirm("Yakin ingin menghapus pelanggan ini?")) {
       try {
         await api.deleteCustomer(id);
         loadCustomers();
+        alert("Pelanggan berhasil dihapus");
       } catch (error) {
         console.error("Error deleting customer:", error);
+        const errorMessage =
+          error.response?.data?.error ||
+          error.response?.data?.message ||
+          "Gagal menghapus pelanggan";
+        alert(errorMessage);
       }
     }
   };
