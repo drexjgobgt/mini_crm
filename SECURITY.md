@@ -7,12 +7,14 @@ Dokumen ini menjelaskan fitur-fitur keamanan yang telah diimplementasikan dalam 
 ### 1. Input Validation & Sanitization
 
 #### Backend
+
 - **express-validator**: Semua input divalidasi sebelum diproses
 - **XSS Protection**: Input disanitasi menggunakan library `xss`
 - **Type Validation**: ID, email, phone, dan data lainnya divalidasi sesuai tipe
 - **Length Limits**: Semua field memiliki batas maksimal karakter
 
 #### Frontend
+
 - **Client-side Validation**: Validasi sebelum mengirim ke API
 - **Input Sanitization**: Menghapus karakter berbahaya dari input
 - **Email & Phone Validation**: Format email dan nomor telepon divalidasi
@@ -70,11 +72,13 @@ Menggunakan Helmet.js untuk menambahkan security headers:
 ### Development
 
 1. **Environment Variables**
+
    - Jangan commit file `.env` ke Git
    - Gunakan `.env.example` sebagai template
    - Validasi semua required environment variables
 
 2. **Dependencies**
+
    - Update dependencies secara berkala
    - Gunakan `npm audit` untuk check vulnerabilities
    - Review dependencies sebelum menambahkannya
@@ -87,21 +91,25 @@ Menggunakan Helmet.js untuk menambahkan security headers:
 ### Production
 
 1. **HTTPS**
+
    - Gunakan HTTPS untuk semua komunikasi
    - Setup SSL/TLS certificates
    - Redirect HTTP ke HTTPS
 
 2. **Authentication & Authorization**
+
    - Implementasi authentication (belum diimplementasikan di versi ini)
    - Role-based access control
    - Session management yang aman
 
 3. **Monitoring**
+
    - Monitor rate limiting violations
    - Log semua security events
    - Setup alerts untuk suspicious activities
 
 4. **Database**
+
    - Gunakan strong passwords
    - Limit database user permissions
    - Regular backups
@@ -149,5 +157,3 @@ Jika Anda menemukan security vulnerability, silakan:
 - [OWASP Top 10](https://owasp.org/www-project-top-ten/)
 - [Node.js Security Best Practices](https://nodejs.org/en/docs/guides/security/)
 - [Express Security Best Practices](https://expressjs.com/en/advanced/best-practice-security.html)
-
-

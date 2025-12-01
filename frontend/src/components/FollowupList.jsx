@@ -8,12 +8,26 @@ function FollowupList() {
     loadFollowups();
   }, []);
 
-  const loadFollowups = async () => {
+  const loadFollowups = async (retryCount = 0) => {
     try {
       const response = await api.getFollowups();
-      setFollowups(response.data);
+      const followupsData = Array.isArray(response.data) ? response.data : [];
+      setFollowups(followupsData);
     } catch (error) {
+      // Retry on rate limit (429) or server error (500) up to 2 times
+      if (
+        (error.response?.status === 429 || error.response?.status === 500) &&
+        retryCount < 2
+      ) {
+        const delay = (retryCount + 1) * 2000; // 2s, 4s
+        console.log(`Error loading followups, retrying in ${delay}ms...`);
+        setTimeout(() => {
+          loadFollowups(retryCount + 1);
+        }, delay);
+        return;
+      }
       console.error("Error loading followups:", error);
+      setFollowups([]); // Set empty array on error
     }
   };
 

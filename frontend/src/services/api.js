@@ -12,12 +12,13 @@ const apiClient = axios.create({
   },
 });
 
-// Request interceptor untuk logging (hanya di development)
+// Request interceptor (logging dihapus untuk mengurangi console noise)
 apiClient.interceptors.request.use(
   (config) => {
-    if (import.meta.env.DEV) {
-      console.log(`API Request: ${config.method?.toUpperCase()} ${config.url}`);
-    }
+    // Logging dihapus - uncomment jika perlu debugging
+    // if (import.meta.env.DEV) {
+    //   console.log(`API Request: ${config.method?.toUpperCase()} ${config.url}`);
+    // }
     return config;
   },
   (error) => {
@@ -25,10 +26,33 @@ apiClient.interceptors.request.use(
   }
 );
 
-// Response interceptor untuk error handling
+// Retry logic dengan exponential backoff
+const retryRequest = async (config, retries = 3) => {
+  for (let i = 0; i < retries; i++) {
+    try {
+      // Exponential backoff: 1s, 2s, 4s
+      if (i > 0) {
+        const delay = Math.pow(2, i - 1) * 1000;
+        await new Promise((resolve) => setTimeout(resolve, delay));
+      }
+      return await apiClient(config);
+    } catch (error) {
+      // Only retry on 429 (Too Many Requests) or network errors
+      if (
+        i === retries - 1 ||
+        (error.response?.status !== 429 && error.response?.status !== undefined)
+      ) {
+        throw error;
+      }
+      // Continue to retry
+    }
+  }
+};
+
+// Response interceptor untuk error handling dengan retry logic
 apiClient.interceptors.response.use(
   (response) => response,
-  (error) => {
+  async (error) => {
     // Handle common errors
     if (error.response) {
       // Server responded with error status
@@ -48,6 +72,18 @@ apiClient.interceptors.response.use(
           console.error("Not Found");
           break;
         case 429:
+          // Rate limited - retry dengan exponential backoff
+          console.warn("Rate limited, retrying...");
+          try {
+            // Retry GET requests automatically
+            if (error.config && error.config.method?.toLowerCase() === "get") {
+              const retryDelay = Math.pow(2, 1) * 1000; // 2 seconds
+              await new Promise((resolve) => setTimeout(resolve, retryDelay));
+              return apiClient(error.config);
+            }
+          } catch (retryError) {
+            console.error("Retry failed:", retryError);
+          }
           console.error("Too Many Requests - Please wait before trying again");
           break;
         case 500:
@@ -57,7 +93,17 @@ apiClient.interceptors.response.use(
           console.error("API Error:", data);
       }
     } else if (error.request) {
-      // Request was made but no response received
+      // Request was made but no response received - retry network errors
+      console.warn("Network Error, retrying...");
+      try {
+        if (error.config && error.config.method?.toLowerCase() === "get") {
+          const retryDelay = 1000; // 1 second
+          await new Promise((resolve) => setTimeout(resolve, retryDelay));
+          return apiClient(error.config);
+        }
+      } catch (retryError) {
+        console.error("Retry failed:", retryError);
+      }
       console.error("Network Error: No response from server");
     } else {
       // Something else happened

@@ -33,9 +33,12 @@ function CustomerDetail() {
         api.getOrdersByCustomer(id),
       ]);
       setCustomer(customerRes.data);
-      setOrders(ordersRes.data);
+      // getOrdersByCustomer returns array directly, not paginated
+      const ordersData = ordersRes.data;
+      setOrders(Array.isArray(ordersData) ? ordersData : []);
     } catch (error) {
       console.error("Error loading customer data:", error);
+      setOrders([]); // Set empty array on error
     }
   };
 

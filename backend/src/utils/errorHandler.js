@@ -35,14 +35,22 @@ export const errorHandler = (err, req, res, next) => {
 
   // Default error response
   const statusCode = err.statusCode || 500;
-  const message =
-    process.env.NODE_ENV === "development"
-      ? err.message
-      : "An error occurred while processing your request";
-
+  
+  // Di development, berikan lebih banyak info untuk debugging
+  if (process.env.NODE_ENV === "development") {
+    return res.status(statusCode).json({
+      error: "Internal server error",
+      message: err.message,
+      code: err.code,
+      detail: err.detail,
+      hint: err.hint,
+    });
+  }
+  
+  // Di production, jangan expose detail
   res.status(statusCode).json({
     error: "Internal server error",
-    message: message,
+    message: "An error occurred while processing your request",
   });
 };
 

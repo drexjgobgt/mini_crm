@@ -14,12 +14,24 @@ function CustomerList() {
     loadCustomers();
   }, []);
 
-  const loadCustomers = async () => {
+  const loadCustomers = async (retryCount = 0) => {
     try {
       const response = await api.getCustomers();
-      setCustomers(response.data);
+      // Handle new paginated response format
+      const customersData = response.data.data || response.data;
+      setCustomers(Array.isArray(customersData) ? customersData : []);
     } catch (error) {
+      // Retry on rate limit (429) up to 2 times
+      if (error.response?.status === 429 && retryCount < 2) {
+        const delay = (retryCount + 1) * 2000; // 2s, 4s
+        console.log(`Rate limited, retrying in ${delay}ms...`);
+        setTimeout(() => {
+          loadCustomers(retryCount + 1);
+        }, delay);
+        return;
+      }
       console.error("Error loading customers:", error);
+      setCustomers([]); // Set empty array on error
     }
   };
 
@@ -60,13 +72,15 @@ function CustomerList() {
     api.exportExcel();
   };
 
-  const filteredCustomers = customers.filter((customer) => {
-    const matchSearch =
-      customer.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      customer.phone?.includes(searchTerm);
-    const matchTag = filterTag === "all" || customer.tags?.includes(filterTag);
-    return matchSearch && matchTag;
-  });
+  const filteredCustomers = Array.isArray(customers)
+    ? customers.filter((customer) => {
+        const matchSearch =
+          customer.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          customer.phone?.includes(searchTerm);
+        const matchTag = filterTag === "all" || customer.tags?.includes(filterTag);
+        return matchSearch && matchTag;
+      })
+    : [];
 
   const getTagColor = (tag) => {
     const colors = {

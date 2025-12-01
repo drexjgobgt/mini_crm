@@ -14,12 +14,14 @@ Sistem Customer Relationship Management (CRM) sederhana yang dirancang khusus un
 ## 🛠️ Teknologi yang Digunakan
 
 ### Backend
+
 - **Node.js** dengan **Express.js**
 - **PostgreSQL** sebagai database
 - **dotenv** untuk manajemen environment variables
 - **ExcelJS** untuk export ke Excel
 
 ### Frontend
+
 - **React** dengan **Vite**
 - **React Router** untuk routing
 - **Axios** untuk HTTP requests
@@ -120,6 +122,8 @@ CREATE INDEX idx_followups_status ON followups(status);
 CREATE INDEX idx_followups_followup_date ON followups(followup_date);
 ```
 
+**Catatan**: Jika Anda sudah memiliki database dengan schema lama (menggunakan `completed`, `due_date`, atau `message`), jalankan script migration di `backend/migrations/fix_followups_schema.sql` untuk memperbarui schema ke versi baru.
+
 ### 4. Install Dependencies Backend
 
 ```bash
@@ -128,6 +132,7 @@ npm install
 ```
 
 **Catatan**: Dependencies baru yang ditambahkan untuk security:
+
 - `express-rate-limit`: Rate limiting
 - `express-validator`: Input validation
 - `helmet`: Security headers
@@ -207,6 +212,7 @@ mini CRM UMKM/
 ## 🔌 API Endpoints
 
 ### Customers
+
 - `GET /api/customers` - Ambil semua pelanggan
 - `GET /api/customers/:id` - Ambil detail pelanggan
 - `POST /api/customers` - Tambah pelanggan baru
@@ -214,11 +220,13 @@ mini CRM UMKM/
 - `DELETE /api/customers/:id` - Hapus pelanggan
 
 ### Orders
+
 - `GET /api/orders` - Ambil semua pesanan
 - `GET /api/orders/customer/:customerId` - Ambil pesanan berdasarkan pelanggan
 - `POST /api/orders` - Tambah pesanan baru
 
 ### Followups
+
 - `GET /api/followups` - Ambil semua follow-up
 - `POST /api/followups` - Tambah follow-up baru
 - `PATCH /api/followups/:id/complete` - Tandai follow-up sebagai selesai
@@ -231,35 +239,42 @@ Project ini telah dilengkapi dengan berbagai fitur keamanan:
 ### Security Features yang Diimplementasikan:
 
 1. **Input Validation & Sanitization**
+
    - Semua input divalidasi menggunakan `express-validator`
    - XSS protection dengan sanitization
    - Email dan phone number validation
    - SQL injection prevention dengan parameterized queries
 
 2. **Rate Limiting**
+
    - API rate limiting: 100 requests per 15 menit
    - Strict rate limiting untuk create/update/delete: 20 requests per 15 menit
    - Export rate limiting: 10 requests per jam
 
 3. **CORS Protection**
+
    - CORS dikonfigurasi untuk hanya mengizinkan origin tertentu
    - Dapat dikonfigurasi melalui environment variable `ALLOWED_ORIGINS`
 
 4. **Security Headers**
+
    - Menggunakan Helmet.js untuk security headers
    - Content Security Policy (CSP)
    - XSS protection headers
 
 5. **Error Handling**
+
    - Error messages tidak mengekspos informasi sensitif
    - Database errors tidak langsung ditampilkan ke client
    - Proper error logging untuk debugging
 
 6. **Request Size Limits**
+
    - Body parser limit: 10MB
    - Mencegah abuse dengan request besar
 
 7. **Database Security**
+
    - Connection pooling dengan limit
    - Connection timeout handling
    - Environment variable validation
@@ -307,4 +322,3 @@ Dibuat dengan ❤️ untuk membantu UMKM mengelola bisnis mereka dengan lebih ba
 ---
 
 **Catatan**: Pastikan untuk membuat file `.env` di folder `backend` sebelum menjalankan aplikasi. File ini berisi konfigurasi database dan tidak akan ter-commit ke Git untuk keamanan.
-

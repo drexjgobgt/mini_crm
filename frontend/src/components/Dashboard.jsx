@@ -13,20 +13,69 @@ function Dashboard() {
     loadStats();
   }, []);
 
-  const loadStats = async () => {
+  const loadStats = async (retryCount = 0) => {
     try {
-      const [customers, orders, followups] = await Promise.all([
+      // Load stats individually untuk handle partial failures
+      const [customersRes, ordersRes, followupsRes] = await Promise.allSettled([
         api.getCustomers(),
         api.getOrders(),
         api.getFollowups(),
       ]);
+      
+      // Handle customers
+      let totalCustomers = 0;
+      if (customersRes.status === "fulfilled") {
+        const customers = customersRes.value.data.data || customersRes.value.data;
+        totalCustomers = Array.isArray(customers) ? customers.length : 0;
+      } else {
+        console.error("Error loading customers:", customersRes.reason);
+      }
+      
+      // Handle orders
+      let totalOrders = 0;
+      if (ordersRes.status === "fulfilled") {
+        const orders = ordersRes.value.data.data || ordersRes.value.data;
+        totalOrders = Array.isArray(orders) ? orders.length : 0;
+      } else {
+        console.error("Error loading orders:", ordersRes.reason);
+      }
+      
+      // Handle followups
+      let pendingFollowups = 0;
+      if (followupsRes.status === "fulfilled") {
+        const followups = followupsRes.value.data;
+        pendingFollowups = Array.isArray(followups) ? followups.length : 0;
+      } else {
+        console.error("Error loading followups:", followupsRes.reason);
+        // Retry followups jika error 500 atau 429
+        if (
+          followupsRes.reason?.response?.status === 500 ||
+          followupsRes.reason?.response?.status === 429
+        ) {
+          if (retryCount < 2) {
+            const delay = (retryCount + 1) * 2000;
+            console.log(`Retrying followups in ${delay}ms...`);
+            setTimeout(() => {
+              loadStats(retryCount + 1);
+            }, delay);
+            return;
+          }
+        }
+      }
+      
       setStats({
-        totalCustomers: customers.data.length,
-        totalOrders: orders.data.length,
-        pendingFollowups: followups.data.length,
+        totalCustomers,
+        totalOrders,
+        pendingFollowups,
       });
     } catch (error) {
       console.error("Error loading stats:", error);
+      // Set default values on error
+      setStats({
+        totalCustomers: 0,
+        totalOrders: 0,
+        pendingFollowups: 0,
+      });
     }
   };
 

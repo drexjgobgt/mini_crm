@@ -4,13 +4,65 @@ import { sanitizeObject } from "../utils/sanitize.js";
 
 export const getFollowups = async (req, res, next) => {
   try {
-    // Perbaiki query untuk menggunakan status bukan completed
-    const result = await pool.query(
-      "SELECT f.*, c.name as customer_name, c.phone FROM followups f JOIN customers c ON f.customer_id = c.id WHERE f.status = $1 ORDER BY f.followup_date ASC LIMIT 1000",
-      ["pending"]
-    );
+    // Query yang lebih robust dengan dynamic column detection
+    // Cek kolom yang tersedia terlebih dahulu
+    const columnCheck = await pool.query(`
+      SELECT column_name 
+      FROM information_schema.columns 
+      WHERE table_name = 'followups'
+    `);
+    
+    const columns = columnCheck.rows.map((row) => row.column_name);
+    const hasStatus = columns.includes("status");
+    const hasCompleted = columns.includes("completed");
+    const hasFollowupDate = columns.includes("followup_date");
+    const hasDueDate = columns.includes("due_date");
+    const hasNotes = columns.includes("notes");
+    const hasMessage = columns.includes("message");
+    
+    // Build query berdasarkan kolom yang tersedia
+    let statusCondition = "";
+    let dateColumn = hasFollowupDate ? "followup_date" : hasDueDate ? "due_date" : "created_at";
+    
+    if (hasStatus) {
+      statusCondition = "WHERE (f.status = $1 OR f.status IS NULL OR f.status = '')";
+    } else if (hasCompleted) {
+      statusCondition = "WHERE (f.completed = false OR f.completed IS NULL)";
+    } else {
+      // Jika tidak ada status atau completed, ambil semua
+      statusCondition = "";
+    }
+    
+    // Select columns dengan alias untuk konsistensi
+    let selectColumns = "f.*";
+    if (hasMessage && !hasNotes) {
+      selectColumns += ", f.message as notes";
+    }
+    if (hasDueDate && !hasFollowupDate) {
+      selectColumns += ", f.due_date as followup_date";
+    }
+    
+    const query = `
+      SELECT ${selectColumns}, c.name as customer_name, c.phone 
+      FROM followups f 
+      LEFT JOIN customers c ON f.customer_id = c.id 
+      ${statusCondition}
+      ORDER BY ${dateColumn} ASC 
+      LIMIT 1000
+    `;
+    
+    const params = hasStatus ? ["pending"] : [];
+    const result = await pool.query(query, params);
+    
     res.json(result.rows);
   } catch (err) {
+    // Log error untuk debugging
+    console.error("Error in getFollowups:", {
+      message: err.message,
+      code: err.code,
+      detail: err.detail,
+      hint: err.hint,
+    });
     next(err);
   }
 };
